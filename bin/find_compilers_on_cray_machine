@@ -1,0 +1,23 @@
+#!/bin/bash
+source $MODULESHOME/init/bash
+SPACK="$(dirname $0)/spack"
+
+function check_by_version {
+   compiler_module=$1
+   compiler_version=$2
+   module swap $compiler_module $compiler_version
+   $SPACK compiler add
+}
+
+function check_for_new_compilers {
+    pe_module=$1
+    compiler_module=$2
+    module unload PrgEnv-intel PrgEnv-gnu PrgEnv-pgi PrgEnv-cray
+    module load $pe_module
+    $SPACK compiler add #Add default version
+    for compiler_version in `module avail -t $compiler_module 2>&1 | grep -v : | grep -v default`; do check_by_version $compiler_module $compiler_version; done
+}
+
+check_for_new_compilers PrgEnv-intel intel
+check_for_new_compilers PrgEnv-pgi pgi
+check_for_new_compilers PrgEnv-gnu gcc

@@ -113,6 +113,8 @@ def set_compiler_environment_variables(pkg, env):
         env.set('SPACK_F77', compiler.f77)
     if compiler.fc:
         env.set('SPACK_FC', compiler.fc)
+    if hasattr(compiler, 'cray_wrapper'):
+        env.set('SPACK_CRAY_WRAPPER', compiler.cray_wrapper)
 
     env.set('SPACK_COMPILER_SPEC', str(pkg.spec.compiler))
     return env
