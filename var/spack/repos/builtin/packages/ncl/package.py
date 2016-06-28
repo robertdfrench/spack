@@ -38,7 +38,7 @@ class Ncl(Package):
     depends_on('jpeg')
     depends_on('zlib')
     depends_on('cairo')
-    depends_on('netcdf')
+    depends_on('netcdf~mpi')
     depends_on('hdf')
 
     def install(self, spec, prefix):
