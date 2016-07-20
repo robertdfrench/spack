@@ -50,7 +50,7 @@ class Gromacs(Package):
     depends_on('mpi', when='+mpi')
 
     depends_on('fftw')
-    depends_on('cmake', type='build')
+    depends_on('cmake os=fe', type='build')
 
     # TODO : add GPU support
 
