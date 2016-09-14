@@ -1,0 +1,3 @@
+specs:
+- libdwarf@20160507%pgi@16.5-0 arch=linux-SuSE11-x86_64
+- cmake@3.6.1%gcc@4.7~doc+ncurses+openssl+ownlibs~qt arch=linux-SuSE11-x86_64
