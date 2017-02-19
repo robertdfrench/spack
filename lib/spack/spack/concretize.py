@@ -41,7 +41,7 @@ import spack.architecture
 import spack.error
 from spack.version import *
 from functools import partial
-from itertools import chain
+from itertools import chain, ifilter
 from spack.package_prefs import *
 
 
@@ -436,34 +436,67 @@ class DefaultConcretizer(object):
         return ret
 
 
-def find_spec(spec, condition):
-    """Searches the dag from spec in an intelligent order and looks
+def find_spec(origin_spec, condition):
+    """Searches the dag from origin_spec in an intelligent order and looks
        for a spec that matches a condition"""
-    # First search parents, then search children
-    deptype = ('build', 'link')
-    dagiter = chain(
-        spec.traverse(direction='parents',  deptype=deptype, root=False),
-        spec.traverse(direction='children', deptype=deptype, root=False))
-    visited = set()
-    for relative in dagiter:
-        if condition(relative):
-            return relative
-        visited.add(id(relative))
+    condition = MemoizedCondition(condition)
+    dag = SpecNetwork(origin_spec)
+    for spec in dag.search('parents', 'children', 'root_deps', 'origin'):
+        if condition(spec):
+            return spec
 
-    # Then search all other relatives in the DAG *except* spec
-    for relative in spec.root.traverse(deptypes=spack.alldeps):
-        if relative is spec:
-            continue
-        if id(relative) in visited:
-            continue
-        if condition(relative):
-            return relative
 
-    # Finally search spec itself.
-    if condition(spec):
-        return spec
+class MemoizedCondition(object):
+    def __init__(self, condition):
+        self.condition = condition
+        self.visited = set()
 
-    return None   # Nothing matched the condition.
+    def __call__(self, spec):
+        if self._already_visited(spec):
+            return False
+        else:
+            self._record_visit(spec)
+            return self.condition(spec)
+
+    def _record_visit(self, spec):
+        self.visited.add(id(spec))
+
+    def _already_visited(self, spec):
+        return id(spec) in self.visited
+
+
+class SpecNetwork(object):
+    def __init__(self, spec):
+        self.spec = spec
+
+    def search(self, *args):
+        return chain(*[getattr(self, x) for x in args])
+
+    @property
+    def parents(self):
+        return self._get_traversal('parents')
+
+    @property
+    def children(self):
+        return self._get_traversal('children')
+
+    def _get_traversal(self, direction):
+        return self.spec.traverse(
+                direction=direction,
+                deptype=('build', 'link'),
+                root=False)
+
+    @property
+    def root_deps(self):
+        deps = self.spec.root.traverse(deptypes=spack.alldeps)
+        return self._not_me(deps)
+
+    def _not_me(self, specs):
+        return ifilter(lambda x: x is not self.spec, specs)
+
+    @property
+    def origin(self):
+        return [self.spec]
 
 
 class UnavailableCompilerVersionError(spack.error.SpackError):
